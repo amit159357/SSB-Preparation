@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Word Appear Timer (WAT)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f0f4f8;
+      text-align: center;
+    }
+    #inputSection {
+      margin-bottom: 20px;
+    }
+    textarea {
+      width: 80%;
+      height: 100px;
+      font-size: 16px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #display {
+      font-size: 60px;
+      margin-top: 60px;
+      color: #222;
+      min-height: 80px;
+    }
+    #resetButton {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #dc3545;
+    }
+    #resetButton:hover {
+      background-color: #a71d2a;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Word Association Test (WAT)</h1>
+
+  <div id="inputSection">
+    <textarea id="wordInput" placeholder="Enter words separated by commas (e.g. brave,honest,leader)"></textarea>
+    <br/>
+    <button onclick="startWAT()">Start WAT</button>
+  </div>
+
+  <button id="resetButton" onclick="resetPage()">Reset</button>
+
+  <div id="display"></div>
+
+  <script>
+    let intervalId;
+
+    function startWAT() {
+      const text = document.getElementById('wordInput').value;
+      const words = text.split(',').map(word => word.trim()).filter(word => word !== '');
+
+      if (words.length === 0) {
+        alert('Please enter at least one word.');
+        return;
+      }
+
+      document.getElementById('inputSection').style.display = 'none'; // hide input area
+
+      let index = 0;
+      const display = document.getElementById('display');
+      display.textContent = words[index];
+
+      clearInterval(intervalId); // clear any previous timers
+      intervalId = setInterval(() => {
+        index++;
+        if (index < words.length) {
+          display.textContent = words[index];
+        } else {A
+          clearInterval(intervalId);
+          display.textContent = "Done!";
+        }
+      }, 15000); // 15 seconds
+    }
+
+    function resetPage() {
+      const wordInput = document.getElementById('wordInput').value;
+      // Copy to clipboard
+      navigator.clipboard.writeText(wordInput).then(() => {
+        location.reload();
+      }).catch(err => {
+        alert('Failed to copy to clipboard: ' + err);
+        location.reload();
+      });
+    }
+  </script>
+
+</body>
+</html>
