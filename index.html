@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Word Appear Timer (WAT)</title>
+  <title>Word Association Test (WAT)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -50,6 +50,35 @@
     #resetButton:hover {
       background-color: #a71d2a;
     }
+    .timer-setting {
+      margin: 20px 0;
+    }
+    .timer-setting label {
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    .timer-setting input {
+      width: 80px;
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #progressBar {
+      width: 60%;
+      height: 10px;
+      background-color: #e0e0e0;
+      margin: 20px auto;
+      border-radius: 5px;
+      overflow: hidden;
+      display: none;
+    }
+    #progressFill {
+      height: 100%;
+      background-color: #007bff;
+      width: 0;
+      transition: width 0.1s linear;
+    }
   </style>
 </head>
 <body>
@@ -58,20 +87,29 @@
 
   <div id="inputSection">
     <textarea id="wordInput" placeholder="Enter words separated by commas (e.g. brave,honest,leader)"></textarea>
-    <br/>
+    <div class="timer-setting">
+      <label for="timerDuration">Time per word (seconds):</label>
+      <input type="number" id="timerDuration" value="15" min="1" max="120">
+    </div>
     <button onclick="startWAT()">Start WAT</button>
   </div>
 
   <button id="resetButton" onclick="resetPage()">Reset</button>
 
+  <div id="progressBar">
+    <div id="progressFill"></div>
+  </div>
   <div id="display"></div>
 
   <script>
     let intervalId;
+    let progressIntervalId;
 
     function startWAT() {
       const text = document.getElementById('wordInput').value;
       const words = text.split(',').map(word => word.trim()).filter(word => word !== '');
+      const timerDuration = parseInt(document.getElementById('timerDuration').value, 10) || 15;
+      const timerMs = timerDuration * 1000;
 
       if (words.length === 0) {
         alert('Please enter at least one word.');
@@ -79,21 +117,60 @@
       }
 
       document.getElementById('inputSection').style.display = 'none'; // hide input area
+      document.getElementById('progressBar').style.display = 'block'; // show progress bar
 
       let index = 0;
       const display = document.getElementById('display');
+      const progressFill = document.getElementById('progressFill');
       display.textContent = words[index];
+      
+      // Reset and start progress bar
+      updateProgressBar(100, timerMs);
 
       clearInterval(intervalId); // clear any previous timers
+      clearInterval(progressIntervalId);
+      
       intervalId = setInterval(() => {
         index++;
         if (index < words.length) {
           display.textContent = words[index];
-        } else {A
+          // Reset progress bar for next word
+          updateProgressBar(100, timerMs);
+        } else {
           clearInterval(intervalId);
-          display.textContent = "Done!";
+          clearInterval(progressIntervalId);
+          progressFill.style.width = '0%';
+          display.textContent = "Test Ended";
+          setTimeout(() => {
+            if (confirm('Test completed! Would you like to start again?')) {
+              resetPage();
+            }
+          }, 3000);
         }
-      }, 15000); // 15 seconds
+      }, timerMs);
+    }
+
+    function updateProgressBar(startValue, duration) {
+      const progressFill = document.getElementById('progressFill');
+      progressFill.style.width = '100%';
+      
+      clearInterval(progressIntervalId);
+      
+      const startTime = Date.now();
+      const endTime = startTime + duration;
+      
+      progressIntervalId = setInterval(() => {
+        const currentTime = Date.now();
+        const elapsedTime = currentTime - startTime;
+        const remainingPercent = 100 - (elapsedTime / duration * 100);
+        
+        if (remainingPercent <= 0) {
+          progressFill.style.width = '0%';
+          clearInterval(progressIntervalId);
+        } else {
+          progressFill.style.width = remainingPercent + '%';
+        }
+      }, 50);
     }
 
     function resetPage() {
