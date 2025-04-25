@@ -101,9 +101,18 @@
   </div>
   <div id="display"></div>
 
+  <!-- 🔊 Audio Element -->
+  <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.mp3" preload="auto"></audio>
+
   <script>
     let intervalId;
     let progressIntervalId;
+
+    function playSound() {
+      const beep = document.getElementById('beepSound');
+      beep.currentTime = 0;
+      beep.play();
+    }
 
     function startWAT() {
       const text = document.getElementById('wordInput').value;
@@ -116,31 +125,32 @@
         return;
       }
 
-      document.getElementById('inputSection').style.display = 'none'; // hide input area
-      document.getElementById('progressBar').style.display = 'block'; // show progress bar
+      document.getElementById('inputSection').style.display = 'none';
+      document.getElementById('progressBar').style.display = 'block';
 
       let index = 0;
       const display = document.getElementById('display');
       const progressFill = document.getElementById('progressFill');
       display.textContent = words[index];
-      
-      // Reset and start progress bar
+      playSound(); // 🔊 Play on first word
+
       updateProgressBar(100, timerMs);
 
-      clearInterval(intervalId); // clear any previous timers
+      clearInterval(intervalId);
       clearInterval(progressIntervalId);
-      
+
       intervalId = setInterval(() => {
         index++;
         if (index < words.length) {
           display.textContent = words[index];
-          // Reset progress bar for next word
+          playSound(); // 🔊 Play on each new word
           updateProgressBar(100, timerMs);
         } else {
           clearInterval(intervalId);
           clearInterval(progressIntervalId);
           progressFill.style.width = '0%';
           display.textContent = "Test Ended";
+          playSound(); // 🔊 Optional: play on test end
           setTimeout(() => {
             if (confirm('Test completed! Would you like to start again?')) {
               resetPage();
@@ -153,17 +163,17 @@
     function updateProgressBar(startValue, duration) {
       const progressFill = document.getElementById('progressFill');
       progressFill.style.width = '100%';
-      
+
       clearInterval(progressIntervalId);
-      
+
       const startTime = Date.now();
       const endTime = startTime + duration;
-      
+
       progressIntervalId = setInterval(() => {
         const currentTime = Date.now();
         const elapsedTime = currentTime - startTime;
         const remainingPercent = 100 - (elapsedTime / duration * 100);
-        
+
         if (remainingPercent <= 0) {
           progressFill.style.width = '0%';
           clearInterval(progressIntervalId);
@@ -175,7 +185,6 @@
 
     function resetPage() {
       const wordInput = document.getElementById('wordInput').value;
-      // Copy to clipboard
       navigator.clipboard.writeText(wordInput).then(() => {
         location.reload();
       }).catch(err => {
