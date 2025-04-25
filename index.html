@@ -53,12 +53,7 @@
     #display {
       font-size: 48px;
       margin: 30px 0;
-    }
-    #timeDisplay {
-      font-size: 24px;
-      font-weight: bold;
-      margin: 15px 0;
-      color: #333;
+      min-height: 60px;
     }
     #soundStatus {
       color: #888;
@@ -88,7 +83,6 @@
   </div>
 
   <div id="testArea" style="display: none;">
-    <div id="timeDisplay">15s</div>
     <div id="display"></div>
 
     <div id="controlArea">
@@ -100,7 +94,6 @@
   <script>
     let currentIndex = 0;
     let interval;
-    let timerCountdown;
     let audioContext;
     let words = [];
     let duration = 0;
@@ -170,9 +163,6 @@
       // Hide setup area and show test area
       document.getElementById('setupArea').style.display = 'none';
       document.getElementById('testArea').style.display = 'block';
-      
-      // Update timer display
-      document.getElementById('timeDisplay').textContent = duration + 's';
 
       showWord(words, duration * 1000);
     }
@@ -182,51 +172,25 @@
       clearAllIntervals();
       
       const display = document.getElementById('display');
-      const timeDisplay = document.getElementById('timeDisplay');
       currentIndex = 0;
 
       display.textContent = wordList[currentIndex];
       playBeep();
-      startTimerCountdown(durationMs / 1000);
 
       interval = setInterval(() => {
         currentIndex++;
         if (currentIndex < wordList.length) {
           display.textContent = wordList[currentIndex];
           playBeep();
-          startTimerCountdown(durationMs / 1000);
         } else {
           clearAllIntervals();
           display.textContent = "Test Complete!";
-          timeDisplay.textContent = "0s";
         }
       }, durationMs);
     }
 
-    function startTimerCountdown(seconds) {
-      // Clear existing countdown
-      clearInterval(timerCountdown);
-      
-      const timeDisplay = document.getElementById('timeDisplay');
-      let remainingSeconds = Math.floor(seconds);
-      
-      // Set initial time display
-      timeDisplay.textContent = remainingSeconds + 's';
-      
-      timerCountdown = setInterval(() => {
-        remainingSeconds--;
-        if (remainingSeconds <= 0) {
-          clearInterval(timerCountdown);
-          timeDisplay.textContent = "0s";
-        } else {
-          timeDisplay.textContent = remainingSeconds + 's';
-        }
-      }, 1000);
-    }
-
     function clearAllIntervals() {
       clearInterval(interval);
-      clearInterval(timerCountdown);
     }
 
     function repeatTest() {
@@ -241,7 +205,6 @@
       // Reset UI
       document.getElementById('testArea').style.display = 'none';
       document.getElementById('setupArea').style.display = 'block';
-      document.getElementById('timeDisplay').textContent = duration + 's';
       document.getElementById('display').textContent = "";
     }
   </script>
