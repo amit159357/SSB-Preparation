@@ -3,81 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Word Association Test (WAT)</title>
+  <title>WAT - Word Association Test</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f0f4f8;
+      font-family: sans-serif;
+      padding: 30px;
       text-align: center;
-    }
-    #inputSection {
-      margin-bottom: 20px;
+      background-color: #f0f4f8;
     }
     textarea {
       width: 80%;
       height: 100px;
       font-size: 16px;
       padding: 10px;
+      border-radius: 6px;
       border: 1px solid #ccc;
+    }
+    .input-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .input-group input {
+      margin: 0 5px;
+      padding: 10px 15px;
+      font-size: 16px;
       border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .input-group label {
+      font-size: 16px;
+      margin-left: 5px;
     }
     button {
-      padding: 10px 20px;
+      margin-top: 10px;
+      padding: 10px 15px;
       font-size: 16px;
-      margin: 10px;
+      border-radius: 5px;
+      border: none;
       background-color: #007bff;
       color: white;
-      border: none;
       cursor: pointer;
-      border-radius: 5px;
+      margin: 5px;
     }
     button:hover {
       background-color: #0056b3;
     }
     #display {
-      font-size: 60px;
-      margin-top: 60px;
-      color: #222;
-      min-height: 80px;
+      font-size: 48px;
+      margin: 30px 0;
     }
-    #resetButton {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background-color: #dc3545;
+    #timeDisplay {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0;
+      color: #333;
     }
-    #resetButton:hover {
-      background-color: #a71d2a;
+    #soundStatus {
+      color: #888;
+      font-style: italic;
+      margin-top: 10px;
+      font-size: 14px;
     }
-    .timer-setting {
-      margin: 20px 0;
-    }
-    .timer-setting label {
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    .timer-setting input {
-      width: 80px;
-      padding: 8px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    #progressBar {
-      width: 60%;
-      height: 10px;
-      background-color: #e0e0e0;
-      margin: 20px auto;
-      border-radius: 5px;
-      overflow: hidden;
-      display: none;
-    }
-    #progressFill {
-      height: 100%;
-      background-color: #007bff;
-      width: 0;
-      transition: width 0.1s linear;
+    #controlArea {
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -85,112 +75,174 @@
 
   <h1>Word Association Test (WAT)</h1>
 
-  <div id="inputSection">
-    <textarea id="wordInput" placeholder="Enter words separated by commas (e.g. brave,honest,leader)"></textarea>
-    <div class="timer-setting">
-      <label for="timerDuration">Time per word (seconds):</label>
-      <input type="number" id="timerDuration" value="15" min="1" max="120">
+  <div id="setupArea">
+    <textarea id="wordInput" placeholder="Enter words separated by commas (e.g. brave,honest,strong)"></textarea><br>
+    
+    <div class="input-group">
+      <input type="number" id="timer" placeholder="Time" value="15" min="1" />
+      <label for="timer">seconds per word</label>
     </div>
-    <button onclick="startWAT()">Start WAT</button>
+    
+    <button id="startButton" onclick="startWAT()">Start Test</button>
+    <div id="soundStatus"></div>
   </div>
 
-  <button id="resetButton" onclick="resetPage()">Reset</button>
+  <div id="testArea" style="display: none;">
+    <div id="timeDisplay">15s</div>
+    <div id="display"></div>
 
-  <div id="progressBar">
-    <div id="progressFill"></div>
+    <div id="controlArea">
+      <button id="repeatButton" onclick="repeatTest()">Repeat Test</button>
+      <button id="newTestButton" onclick="newTest()">New Test</button>
+    </div>
   </div>
-  <div id="display"></div>
-
-  <!-- 🔊 Audio Element -->
-  <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.mp3" preload="auto"></audio>
 
   <script>
-    let intervalId;
-    let progressIntervalId;
+    let currentIndex = 0;
+    let interval;
+    let timerCountdown;
+    let audioContext;
+    let words = [];
+    let duration = 0;
+    const statusDisplay = document.getElementById('soundStatus');
+    
+    // Initialize audio context on user interaction
+    document.getElementById('startButton').addEventListener('click', function() {
+      if (!audioContext) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          statusDisplay.textContent = "Sound initialized successfully!";
+          setTimeout(() => {
+            statusDisplay.textContent = "";
+          }, 2000);
+        } catch (error) {
+          console.error("Error initializing audio:", error);
+          statusDisplay.textContent = "Sound couldn't be initialized. The test will run silently.";
+        }
+      }
+    });
 
-    function playSound() {
-      const beep = document.getElementById('beepSound');
-      beep.currentTime = 0;
-      beep.play();
+    function playBeep() {
+      if (!audioContext) return;
+      
+      try {
+        // Create oscillator for a simple beep sound
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        // Connect nodes
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Set properties
+        oscillator.type = 'sine'; // sine wave — a simple tone
+        oscillator.frequency.value = 800; // frequency in hertz
+        gainNode.gain.value = 0.1; // lower volume to avoid being too loud
+        
+        // Schedule the beep
+        const now = audioContext.currentTime;
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // fade out
+        
+        // Play the beep
+        oscillator.start(now);
+        oscillator.stop(now + 0.2); // stop after 0.2 seconds
+      } catch (error) {
+        console.error("Error playing beep:", error);
+      }
     }
 
     function startWAT() {
-      const text = document.getElementById('wordInput').value;
-      const words = text.split(',').map(word => word.trim()).filter(word => word !== '');
-      const timerDuration = parseInt(document.getElementById('timerDuration').value, 10) || 15;
-      const timerMs = timerDuration * 1000;
+      const input = document.getElementById('wordInput').value;
+      duration = parseInt(document.getElementById('timer').value, 10);
+      words = input.split(',').map(w => w.trim()).filter(Boolean);
 
-      if (words.length === 0) {
-        alert('Please enter at least one word.');
+      if (words.length === 0 || isNaN(duration) || duration <= 0) {
+        alert('Please enter valid words and timer.');
         return;
       }
 
-      document.getElementById('inputSection').style.display = 'none';
-      document.getElementById('progressBar').style.display = 'block';
+      // Resume audio context if it was suspended (browsers require user interaction)
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
 
-      let index = 0;
+      // Hide setup area and show test area
+      document.getElementById('setupArea').style.display = 'none';
+      document.getElementById('testArea').style.display = 'block';
+      
+      // Update timer display
+      document.getElementById('timeDisplay').textContent = duration + 's';
+
+      showWord(words, duration * 1000);
+    }
+
+    function showWord(wordList, durationMs) {
+      // Clear any existing intervals
+      clearAllIntervals();
+      
       const display = document.getElementById('display');
-      const progressFill = document.getElementById('progressFill');
-      display.textContent = words[index];
-      playSound(); // 🔊 Play on first word
+      const timeDisplay = document.getElementById('timeDisplay');
+      currentIndex = 0;
 
-      updateProgressBar(100, timerMs);
+      display.textContent = wordList[currentIndex];
+      playBeep();
+      startTimerCountdown(durationMs / 1000);
 
-      clearInterval(intervalId);
-      clearInterval(progressIntervalId);
-
-      intervalId = setInterval(() => {
-        index++;
-        if (index < words.length) {
-          display.textContent = words[index];
-          playSound(); // 🔊 Play on each new word
-          updateProgressBar(100, timerMs);
+      interval = setInterval(() => {
+        currentIndex++;
+        if (currentIndex < wordList.length) {
+          display.textContent = wordList[currentIndex];
+          playBeep();
+          startTimerCountdown(durationMs / 1000);
         } else {
-          clearInterval(intervalId);
-          clearInterval(progressIntervalId);
-          progressFill.style.width = '0%';
-          display.textContent = "Test Ended";
-          playSound(); // 🔊 Optional: play on test end
-          setTimeout(() => {
-            if (confirm('Test completed! Would you like to start again?')) {
-              resetPage();
-            }
-          }, 3000);
+          clearAllIntervals();
+          display.textContent = "Test Complete!";
+          timeDisplay.textContent = "0s";
         }
-      }, timerMs);
+      }, durationMs);
     }
 
-    function updateProgressBar(startValue, duration) {
-      const progressFill = document.getElementById('progressFill');
-      progressFill.style.width = '100%';
-
-      clearInterval(progressIntervalId);
-
-      const startTime = Date.now();
-      const endTime = startTime + duration;
-
-      progressIntervalId = setInterval(() => {
-        const currentTime = Date.now();
-        const elapsedTime = currentTime - startTime;
-        const remainingPercent = 100 - (elapsedTime / duration * 100);
-
-        if (remainingPercent <= 0) {
-          progressFill.style.width = '0%';
-          clearInterval(progressIntervalId);
+    function startTimerCountdown(seconds) {
+      // Clear existing countdown
+      clearInterval(timerCountdown);
+      
+      const timeDisplay = document.getElementById('timeDisplay');
+      let remainingSeconds = Math.floor(seconds);
+      
+      // Set initial time display
+      timeDisplay.textContent = remainingSeconds + 's';
+      
+      timerCountdown = setInterval(() => {
+        remainingSeconds--;
+        if (remainingSeconds <= 0) {
+          clearInterval(timerCountdown);
+          timeDisplay.textContent = "0s";
         } else {
-          progressFill.style.width = remainingPercent + '%';
+          timeDisplay.textContent = remainingSeconds + 's';
         }
-      }, 50);
+      }, 1000);
     }
 
-    function resetPage() {
-      const wordInput = document.getElementById('wordInput').value;
-      navigator.clipboard.writeText(wordInput).then(() => {
-        location.reload();
-      }).catch(err => {
-        alert('Failed to copy to clipboard: ' + err);
-        location.reload();
-      });
+    function clearAllIntervals() {
+      clearInterval(interval);
+      clearInterval(timerCountdown);
+    }
+
+    function repeatTest() {
+      // Reset and start the test again with the same words
+      showWord(words, duration * 1000);
+    }
+
+    function newTest() {
+      // Clear all intervals
+      clearAllIntervals();
+      
+      // Reset UI
+      document.getElementById('testArea').style.display = 'none';
+      document.getElementById('setupArea').style.display = 'block';
+      document.getElementById('timeDisplay').textContent = duration + 's';
+      document.getElementById('display').textContent = "";
     }
   </script>
 
